@@ -10,7 +10,7 @@ reddit = praw.Reddit(
 )
 
 print(f"Logged in as: {reddit.user.me()}")
-subreddit = reddit.subreddit("YOUR_SUBREDDIT_NAME")
+subreddit = reddit.subreddit("SleepTokenTheory")
 print(f"Subreddit: {subreddit.display_name}")
 
 for conversation in subreddit.modmail.conversations(state="all"):
