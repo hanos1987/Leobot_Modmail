@@ -16,7 +16,7 @@ reddit = praw.Reddit(
 # OpenAI setup using config values
 client = OpenAI(api_key=openai_config["api_key"])
 
-subreddit = reddit.subreddit("YOUR_SUBREDDIT_NAME")  # Replace with your subreddit
+subreddit = reddit.subreddit("SleepTokenTheory")
 
 def generate_ai_response(message):
     response = client.chat.completions.create(
