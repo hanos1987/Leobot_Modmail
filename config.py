@@ -2,7 +2,7 @@
 reddit_config = {
     "client_id": "YE_9ojlCFZvn_Fx9b3S4HA",
     "client_secret": "y96V4HbFQtnX4oatLDXj0vfZ7tHx0Q",
-    "username": "The_Hanos",
+    "username": "the_hanos",
     "password": "R12345eddit09876!",
     "user_agent": "Modmail AI Bot v1.0"
 }
