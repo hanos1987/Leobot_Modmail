@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from openai import OpenAI
 from config import reddit_config, openai_config
 
-# Reddit setup using config values
 reddit = praw.Reddit(
     client_id=reddit_config["client_id"],
     client_secret=reddit_config["client_secret"],
@@ -14,13 +13,10 @@ reddit = praw.Reddit(
     user_agent=reddit_config["user_agent"]
 )
 
-# OpenAI setup using config values
 client = OpenAI(api_key=openai_config["api_key"])
 
-# Set the subreddit to SleepTokenTheory
 subreddit = reddit.subreddit("SleepTokenTheory")
 
-# Store conversation state (conversation ID -> last message time)
 conversation_tracker = {}
 
 def generate_ai_response(message, is_follow_up=False):
@@ -40,40 +36,48 @@ def generate_ai_response(message, is_follow_up=False):
 
 def check_modmail():
     current_time = datetime.now()
+    print(f"{current_time} - Checking Modmail for {subreddit.display_name}...")
 
-    # Check for messages from u/rubber_duck_army
-    for conversation in subreddit.modmail.conversations(state="all"):
-        author_name = conversation.authors[0].name
-        convo_id = conversation.id
+    try:
+        conversations = list(subreddit.modmail.conversations(state="all"))
+        print(f"{current_time} - Found {len(conversations)} conversations")
+        if not conversations:
+            print(f"{current_time} - No conversations found in Modmail")
+        for conversation in conversations:
+            author_name = conversation.authors[0].name if conversation.authors else "Unknown"
+            convo_id = conversation.id
+            last_message = conversation.messages[-1].body if conversation.messages else "No messages"
+            message_time = datetime.fromtimestamp(float(conversation.last_updated)).strftime("%Y-%m-%d %H:%M:%S")
+            print(f"{current_time} - Conversation {convo_id} from {author_name} (Last updated: {message_time}): {last_message[:50]}...")
 
-        if author_name == "rubber_duck_army":
-            # Handle new or unread messages
-            if conversation.last_updated and convo_id not in conversation_tracker:
-                last_message_time = datetime.fromtimestamp(float(conversation.last_updated))
-                conversation_tracker[convo_id] = last_message_time
-                print(f"New message from {author_name}: {conversation.messages[-1].body}")
-                ai_reply = generate_ai_response(conversation.messages[-1].body)
-                conversation.reply(ai_reply)
-                conversation_tracker[convo_id] = datetime.now()
-                conversation.read()
-
-            # Check for inactivity and send follow-up
-            elif convo_id in conversation_tracker:
-                last_active = conversation_tracker[convo_id]
-                if current_time - last_active > timedelta(minutes=5):
-                    print(f"5 minutes passed, sending follow-up to {convo_id}")
-                    follow_up_message = "Just checking in—any thoughts on this?"
-                    ai_reply = generate_ai_response(follow_up_message, is_follow_up=True)
+            if author_name.lower() == "rubber_duck_army".lower():
+                if conversation.last_updated and convo_id not in conversation_tracker:
+                    last_message_time = datetime.fromtimestamp(float(conversation.last_updated))
+                    conversation_tracker[convo_id] = last_message_time
+                    print(f"{current_time} - New message from {author_name}: {last_message}")
+                    ai_reply = generate_ai_response(last_message)
+                    print(f"{current_time} - Sending reply: {ai_reply}")
                     conversation.reply(ai_reply)
                     conversation_tracker[convo_id] = datetime.now()
-        else:
-            print(f"Ignoring message from {author_name} (not u/rubber_duck_army)")
+                    conversation.read()
 
-# Initial check to confirm login and subreddit access
+                elif convo_id in conversation_tracker:
+                    last_active = conversation_tracker[convo_id]
+                    if current_time - last_active > timedelta(minutes=5):
+                        print(f"{current_time} - 5 minutes passed, sending follow-up to {convo_id}")
+                        follow_up_message = "Just checking in—any thoughts on this?"
+                        ai_reply = generate_ai_response(follow_up_message, is_follow_up=True)
+                        print(f"{current_time} - Sending follow-up reply: {ai_reply}")
+                        conversation.reply(ai_reply)
+                        conversation_tracker[convo_id] = datetime.now()
+            else:
+                print(f"{current_time} - Ignoring message from {author_name} (not u/rubber_duck_army)")
+    except Exception as e:
+        print(f"{current_time} - Error checking Modmail: {e}")
+
 print(f"Logged in as: {reddit.user.me()}")
 print(f"Subreddit: {subreddit.display_name}")
 
-# Main loop
 while True:
     check_modmail()
     time.sleep(60)
